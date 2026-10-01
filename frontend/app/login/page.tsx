@@ -23,7 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await api.post<ApiResponse<User>>('/auth/login', form);
+      const { data } = await api.post<ApiResponse<User>>('/api/auth/login', form);
       login(data.data);
       router.push('/products');
     } catch (err: unknown) {

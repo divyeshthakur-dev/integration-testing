@@ -28,7 +28,7 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
     if (!isAuthenticated) { router.push('/login'); return; }
     const fetchOrder = async () => {
       try {
-        const { data } = await api.get<ApiResponse<Order>>(`/orders/${id}`);
+        const { data } = await api.get<ApiResponse<Order>>(`/api/orders/${id}`);
         setOrder(data.data);
       } catch {
         setError('Could not load order details');

@@ -82,12 +82,12 @@ export default function PaymentPage() {
         totalPrice,
       };
 
-      const { data: orderData } = await api.post<ApiResponse<Order>>('/orders', orderPayload);
+      const { data: orderData } = await api.post<ApiResponse<Order>>('/api/orders', orderPayload);
       const order = orderData.data;
 
       // 2. Mock payment (simulate delay)
       await new Promise((res) => setTimeout(res, 1500));
-      await api.put<ApiResponse<Order>>(`/orders/${order._id}/pay`);
+      await api.put<ApiResponse<Order>>(`/api/orders/${order._id}/pay`);
 
       // 3. Clear cart & session data
       clearCart();

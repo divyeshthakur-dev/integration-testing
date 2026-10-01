@@ -35,7 +35,7 @@ export default function OrdersPage() {
     if (!isAuthenticated) { router.push('/login'); return; }
     const fetchOrders = async () => {
       try {
-        const { data } = await api.get<ApiResponse<Order[]>>('/orders/my-orders');
+        const { data } = await api.get<ApiResponse<Order[]>>('/api/orders/my-orders');
         setOrders(data.data);
       } catch {
         setError('Failed to load orders');

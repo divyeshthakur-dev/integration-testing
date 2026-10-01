@@ -25,7 +25,7 @@ export default function ProductsPage() {
       if (category !== 'all') params.category = category;
       if (sort !== 'default') params.sort = sort;
 
-      const { data } = await api.get<ApiResponse<ProductsResponse>>('/products', { params });
+      const { data } = await api.get<ApiResponse<ProductsResponse>>('/api/products', { params });
       setProducts(data.data.products);
       setTotalPages(data.data.pages);
       setTotal(data.data.total);
@@ -39,7 +39,7 @@ export default function ProductsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get<ApiResponse<string[]>>('/products/categories');
+        const { data } = await api.get<ApiResponse<string[]>>('/api/products/categories');
         setCategories(data.data);
       } catch {
         // silent

@@ -70,12 +70,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
             productId: i.product._id,
             quantity: i.quantity,
           }));
-          const { data } = await api.put('/cart/sync', { items: syncPayload });
+          const { data } = await api.put('/api/cart/sync', { items: syncPayload });
           const synced = normaliseItems(data.data.items ?? []);
           persist(synced);
         } else {
           // No local items — just pull from server
-          const { data } = await api.get('/cart');
+          const { data } = await api.get('/api/cart');
           const serverItems = normaliseItems(data.data.items ?? []);
           persist(serverItems);
         }
@@ -109,7 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Persist to backend if authenticated
       if (isAuthenticated) {
         try {
-          const { data } = await api.post('/cart', { productId: product._id, quantity });
+          const { data } = await api.post('/api/cart', { productId: product._id, quantity });
           persist(normaliseItems(data.data.items ?? []));
         } catch {
           // Keep optimistic state on failure
@@ -125,7 +125,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (isAuthenticated) {
         try {
-          const { data } = await api.delete(`/cart/${productId}`);
+          const { data } = await api.delete(`/api/cart/${productId}`);
           persist(normaliseItems(data.data.items ?? []));
         } catch { /* keep optimistic */ }
       }
@@ -149,7 +149,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (isAuthenticated) {
         try {
-          const { data } = await api.put(`/cart/${productId}`, { quantity });
+          const { data } = await api.put(`/api/cart/${productId}`, { quantity });
           persist(normaliseItems(data.data.items ?? []));
         } catch { /* keep optimistic */ }
       }
@@ -165,7 +165,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (isAuthenticated) {
       try {
-        await api.delete('/cart');
+        await api.delete('/api/cart');
       } catch { /* best-effort */ }
     }
   }, [user, isAuthenticated]);

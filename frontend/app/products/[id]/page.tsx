@@ -46,7 +46,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const { data } = await api.get<ApiResponse<Product>>(`/products/${id}`);
+        const { data } = await api.get<ApiResponse<Product>>(`/api/products/${id}`);
         setProduct(data.data);
       } catch {
         setError('Product not found');

@@ -31,7 +31,7 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      const { data } = await api.post<ApiResponse<User>>('/auth/signup', {
+      const { data } = await api.post<ApiResponse<User>>('/api/auth/signup', {
         name: form.name,
         email: form.email,
         password: form.password,
