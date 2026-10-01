@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: 'Discover premium products at unbeatable prices. Shop electronics, clothing, footwear and more.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
