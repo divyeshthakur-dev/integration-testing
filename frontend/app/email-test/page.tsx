@@ -5,6 +5,7 @@ import api from '@/lib/api';
 
 export default function EmailTestPage() {
   const [provider, setProvider] = useState('resend');
+  const [from, setFrom] = useState('');
   const [to, setTo] = useState('delivered@resend.dev');
   const [subject, setSubject] = useState('Integration Testing - Resend');
   const [body, setBody] = useState('<h1>Resend Test</h1><p>This is a test email from my integration-testing project.</p>');
@@ -15,9 +16,20 @@ export default function EmailTestPage() {
     const newProvider = e.target.value;
     setProvider(newProvider);
     if (newProvider === 'resend') {
+      setFrom('');
       setTo('delivered@resend.dev');
       setSubject('Integration Testing - Resend');
       setBody('<h1>Resend Test</h1><p>This is a test email from my integration-testing project.</p>');
+    } else if (newProvider === 'mailjet') {
+      setFrom('divyeshthakur@grewon.com');
+      setTo('YOUR_OTHER_GMAIL_ADDRESS');
+      setSubject('Mailjet Integration Test');
+      setBody('<h1>Mailjet Test</h1><p>This is a Mailjet integration test.</p>');
+    } else if (newProvider === 'mailtrap') {
+      setFrom('hello@demomailtrap.com');
+      setTo('YOUR_OTHER_GMAIL_ADDRESS');
+      setSubject('Mailtrap Integration Test');
+      setBody('<h1>Mailtrap Test</h1><p>This is a Mailtrap integration test.</p>');
     }
   };
 
@@ -27,7 +39,7 @@ export default function EmailTestPage() {
     setStatus({ type: null, message: '' });
 
     try {
-      const response = await api.post('/email/send', { provider, to, subject, body });
+      const response = await api.post('/email/send', { provider, from, to, subject, body });
       setStatus({ type: 'success', message: response.data.message || 'Email sent successfully!' });
     } catch (err: unknown) {
       let errorMsg = 'Failed to send email';
@@ -63,7 +75,19 @@ export default function EmailTestPage() {
               <option value="resend">Resend</option>
               <option value="brevo">Brevo</option>
               <option value="mailjet">Mailjet</option>
+              <option value="mailtrap">Mailtrap</option>
             </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>From Email (Optional)</label>
+            <input 
+              type="email" 
+              value={from} 
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="sender@example.com"
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--foreground)' }}
+            />
           </div>
 
           <div>

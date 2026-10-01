@@ -1,11 +1,15 @@
-const sendEmail = async ({ provider, to, subject, body }) => {
+const nodemailer = require("nodemailer");
+
+const sendEmail = async ({ provider, to, subject, body, from }) => {
   switch (provider) {
     case 'resend':
-      return await sendViaResend({ to, subject, body });
+      return await sendViaResend({ to, subject, body, from });
     case 'brevo':
-      return await sendViaBrevo({ to, subject, body });
+      return await sendViaBrevo({ to, subject, body, from });
     case 'mailjet':
-      return await sendViaMailjet({ to, subject, body });
+      return await sendViaMailjet({ to, subject, body, from });
+    case 'mailtrap':
+      return await sendViaMailtrap({ to, subject, body, from });
     default:
       throw new Error('Unsupported email provider');
   }
@@ -62,7 +66,7 @@ const sendViaBrevo = async ({ to, subject, body }) => {
   return await response.json();
 };
 
-const sendViaMailjet = async ({ to, subject, body }) => {
+const sendViaMailjet = async ({ to, subject, body, from }) => {
   const apiKeyPublic = process.env.MAILJET_API_KEY;
   const apiKeyPrivate = process.env.MAILJET_API_SECRET;
   if (!apiKeyPublic || !apiKeyPrivate) throw new Error('Mailjet API keys are not set');
@@ -77,9 +81,10 @@ const sendViaMailjet = async ({ to, subject, body }) => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
+      SandboxMode: true,
       Messages: [
         {
-          From: { Email: 'test@example.com', Name: 'E-commerce Test' },
+          From: { Email: from || 'test@example.com', Name: 'E-commerce Test' },
           To: [{ Email: to, Name: 'Customer' }],
           Subject: subject,
           HTMLPart: body
@@ -93,6 +98,33 @@ const sendViaMailjet = async ({ to, subject, body }) => {
     throw new Error(`Mailjet Error: ${response.status} ${JSON.stringify(errorData)}`);
   }
   return await response.json();
+};
+
+const sendViaMailtrap = async ({ to, subject, body, from }) => {
+  const user = process.env.MAILTRAP_SMTP_USER;
+  const pass = process.env.MAILTRAP_SMTP_PASSWORD;
+  
+  if (!user || !pass) {
+    throw new Error('MAILTRAP_SMTP_USER and MAILTRAP_SMTP_PASSWORD are not set');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: "sandbox.smtp.mailtrap.io",
+    port: 2525,
+    auth: {
+      user: user,
+      pass: pass
+    }
+  });
+
+  const info = await transporter.sendMail({
+    from: from || '"E-commerce Test" <hello@demomailtrap.com>',
+    to: to,
+    subject: subject,
+    html: body
+  });
+
+  return info;
 };
 
 module.exports = { sendEmail };
