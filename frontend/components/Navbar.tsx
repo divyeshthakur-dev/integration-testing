@@ -77,6 +77,9 @@ export default function Navbar() {
           <Link href="/products" className={isActive('/products')}>
             Products
           </Link>
+          <Link href="/email-test" className={isActive('/email-test')}>
+            Email API
+          </Link>
           {isAuthenticated && (
             <Link href="/orders" className={isActive('/orders')}>
               My Orders

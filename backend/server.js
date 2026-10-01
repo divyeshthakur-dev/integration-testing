@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
+const emailRoutes = require('./routes/emailRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -37,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/email', emailRoutes);
 
 // 404 handler
 app.use((req, res) => {
