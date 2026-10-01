@@ -48,7 +48,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, () => {
+app.listen(PORT,"0.0.0.0", () => {
   console.log(`\n🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   console.log(`📦 API available at: http://localhost:${PORT}/api`);
   console.log(`❤️  Health check: http://localhost:${PORT}/api/health\n`);
