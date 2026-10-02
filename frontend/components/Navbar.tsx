@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { useCart } from '@/lib/CartContext';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -24,8 +24,10 @@ export default function Navbar() {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setMobileOpen(false);
-    setMenuOpen(false);
+    startTransition(() => {
+      setMobileOpen(false);
+      setMenuOpen(false);
+    });
   }, [pathname]);
 
   const handleLogout = () => {

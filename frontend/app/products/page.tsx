@@ -109,8 +109,9 @@ export default function ProductsPage() {
                   if (verificationResp.data.success) {
                     alert('Passkey registered successfully!');
                   }
-                } catch (err: any) {
-                  alert(err.response?.data?.message || err.message || 'Passkey registration failed');
+                } catch (err: unknown) {
+                  const axErr = err as { response?: { data?: { message?: string } }; message?: string };
+                  alert(axErr.response?.data?.message || axErr.message || 'Passkey registration failed');
                 }
               }}
               className="btn-secondary"

@@ -4,12 +4,13 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
+import Image from 'next/image';
 import { useAuth } from '@/lib/AuthContext';
-import { ApiResponse, User } from '@/lib/types';
+import { ApiResponse } from '@/lib/types';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  useAuth(); // AuthContext consumed for session awareness (login not called directly in signup flow)
 
   const [step, setStep] = useState<'signup' | 'totp' | 'recovery'>('signup');
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
@@ -253,7 +254,7 @@ export default function SignupPage() {
                     boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                   }}
                 >
-                  <img src={qrCodeUrl} alt="2FA QR Code" style={{ width: '180px', height: '180px', display: 'block' }} />
+                  <Image src={qrCodeUrl} alt="2FA QR Code" width={180} height={180} unoptimized style={{ display: 'block' }} />
                 </div>
                 <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '10px' }}>
                   Scan with Google Authenticator, Authy, or similar

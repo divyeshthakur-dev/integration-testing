@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
-import { ApiResponse, User } from '@/lib/types';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +29,7 @@ export default function LoginPage() {
 
     try {
       const payload = step === 'totp' ? { ...form, totpCode } : form;
-      const { data } = await api.post<any>('/api/auth/login', payload);
+      const { data } = await api.post<{ require2FA?: boolean; data: Parameters<typeof login>[0] }>('/api/auth/login', payload);
 
       if (data.require2FA) {
         setStep('totp');
@@ -245,8 +244,9 @@ export default function LoginPage() {
                     login(verifyResp.data.data);
                     router.push('/products');
                   }
-                } catch (err: any) {
-                  setError(err.response?.data?.message || err.message || 'Passkey login failed');
+                } catch (err: unknown) {
+                  const axErr = err as { response?: { data?: { message?: string } }; message?: string };
+                  setError(axErr.response?.data?.message || axErr.message || 'Passkey login failed');
                 } finally {
                   setLoading(false);
                 }
