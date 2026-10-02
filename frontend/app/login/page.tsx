@@ -10,11 +10,11 @@ import { ApiResponse, User } from '@/lib/types';
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  
+
   const [step, setStep] = useState<'login' | 'totp'>('login');
   const [form, setForm] = useState({ email: '', password: '' });
   const [totpCode, setTotpCode] = useState('');
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,12 +27,11 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
       const payload = step === 'totp' ? { ...form, totpCode } : form;
-      // Use any to bypass tight type if it complains about require2FA
       const { data } = await api.post<any>('/api/auth/login', payload);
-      
+
       if (data.require2FA) {
         setStep('totp');
       } else {
@@ -50,54 +49,81 @@ export default function LoginPage() {
   return (
     <div
       style={{
-        minHeight: 'calc(100vh - 64px)',
+        minHeight: 'calc(100vh - var(--nav-height))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '48px 24px',
+        padding: 'clamp(24px, 5vw, 60px) 16px',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      {/* Background orb */}
+      {/* Background Orb */}
       <div
+        aria-hidden="true"
         style={{
           position: 'fixed',
           width: '500px',
           height: '500px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(20,184,166,0.1) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(20,184,166,0.08) 0%, transparent 70%)',
           bottom: '-100px',
           left: '-100px',
           pointerEvents: 'none',
-          zIndex: 0,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)',
+          top: '-80px',
+          right: '-80px',
+          pointerEvents: 'none',
         }}
       />
 
+      {/* Card */}
       <div
         className="glass-card animate-fade-in"
-        style={{ width: '100%', maxWidth: '440px', padding: '40px', position: 'relative', zIndex: 1 }}
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          padding: 'clamp(28px, 5vw, 44px)',
+          position: 'relative',
+          zIndex: 1,
+        }}
       >
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div
             style={{
-              width: '56px',
-              height: '56px',
-              background: 'linear-gradient(135deg, var(--secondary), var(--primary))',
-              borderRadius: '16px',
+              width: '58px',
+              height: '58px',
+              background: step === 'login'
+                ? 'linear-gradient(135deg, var(--secondary), var(--primary))'
+                : 'linear-gradient(135deg, var(--primary), var(--secondary))',
+              borderRadius: '18px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '28px',
               margin: '0 auto 16px',
+              boxShadow: '0 8px 24px rgba(99,102,241,0.35)',
             }}
           >
             {step === 'login' ? '🔑' : '🔐'}
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px' }}>
-            {step === 'login' ? 'Welcome Back' : 'Two-Factor Authentication'}
+          <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 1.85rem)', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.02em' }}>
+            {step === 'login' ? 'Welcome Back' : 'Two-Factor Auth'}
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            {step === 'login' ? 'Sign in to your ShopX account' : 'Enter the code from your authenticator app or a recovery code'}
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            {step === 'login'
+              ? 'Sign in to your ShopX account'
+              : 'Enter the code from your authenticator app or a recovery code'}
           </p>
         </div>
 
@@ -108,20 +134,14 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Demo credentials hint */}
+        {/* Hint */}
         {step === 'login' && (
-          <div
-            style={{
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.2)',
-              borderRadius: '10px',
-              padding: '12px 16px',
-              marginBottom: '20px',
-              fontSize: '0.82rem',
-              color: 'var(--primary-light)',
-            }}
-          >
-            💡 New here? <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>Create a free account</Link> to get started.
+          <div className="alert alert-info" style={{ marginBottom: '20px', fontSize: '0.82rem' }}>
+            💡 New here?{' '}
+            <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>
+              Create a free account
+            </Link>{' '}
+            to get started.
           </div>
         )}
 
@@ -130,9 +150,7 @@ export default function LoginPage() {
           {step === 'login' ? (
             <>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                  Email Address
-                </label>
+                <label className="input-label" htmlFor="login-email">Email Address</label>
                 <input
                   id="login-email"
                   type="email"
@@ -142,13 +160,12 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   required
                   className="input-field"
+                  autoComplete="email"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                  Password
-                </label>
+                <label className="input-label" htmlFor="login-password">Password</label>
                 <input
                   id="login-password"
                   type="password"
@@ -158,14 +175,13 @@ export default function LoginPage() {
                   placeholder="Your password"
                   required
                   className="input-field"
+                  autoComplete="current-password"
                 />
               </div>
             </>
           ) : (
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                Authenticator Code
-              </label>
+              <label className="input-label" htmlFor="login-totp">Authenticator Code</label>
               <input
                 id="login-totp"
                 type="text"
@@ -175,7 +191,10 @@ export default function LoginPage() {
                 placeholder="123456"
                 required
                 className="input-field"
-                style={{ textAlign: 'center', letterSpacing: '4px', fontSize: '1.2rem' }}
+                style={{ textAlign: 'center', letterSpacing: '6px', fontSize: '1.25rem', fontWeight: 700 }}
+                maxLength={8}
+                autoComplete="one-time-code"
+                inputMode="numeric"
               />
             </div>
           )}
@@ -185,7 +204,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             className="btn-primary"
-            style={{ width: '100%', padding: '14px', fontSize: '1rem', marginTop: '4px' }}
+            style={{ width: '100%', padding: '15px', fontSize: '1rem', marginTop: '4px' }}
           >
             {loading ? (
               <>
@@ -193,14 +212,15 @@ export default function LoginPage() {
                 Signing in...
               </>
             ) : (
-              step === 'login' ? '🔐 Sign In' : 'Verify'
+              step === 'login' ? '🔐 Sign In' : 'Verify Code'
             )}
           </button>
         </form>
 
+        {/* Passkey Login */}
         {step === 'login' && (
           <div style={{ marginTop: '16px' }}>
-            <div className="divider" style={{ margin: '16px 0' }} />
+            <div className="divider" style={{ margin: '20px 0' }} />
             <button
               type="button"
               disabled={loading}
@@ -209,15 +229,18 @@ export default function LoginPage() {
                 setError('');
                 try {
                   const { startAuthentication } = await import('@simplewebauthn/browser');
-                  const resp = await api.get('/api/auth/passkey/login-options' + (form.email ? `?email=${encodeURIComponent(form.email)}` : ''));
+                  const resp = await api.get(
+                    '/api/auth/passkey/login-options' +
+                      (form.email ? `?email=${encodeURIComponent(form.email)}` : '')
+                  );
                   const { options, sessionId } = resp.data.data;
                   const asseResp = await startAuthentication({ optionsJSON: options });
-                  
+
                   const verifyResp = await api.post('/api/auth/passkey/login-verify', {
                     ...asseResp,
-                    extraInfo: { email: form.email, sessionId }
+                    extraInfo: { email: form.email, sessionId },
                   });
-                  
+
                   if (verifyResp.data.success) {
                     login(verifyResp.data.data);
                     router.push('/products');
@@ -229,19 +252,20 @@ export default function LoginPage() {
                 }
               }}
               className="btn-secondary"
-              style={{ width: '100%', padding: '14px', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              style={{ width: '100%', padding: '14px', fontSize: '0.94rem' }}
             >
               👆 Use Passkey (Fingerprint / Face ID)
             </button>
           </div>
         )}
 
+        {/* Footer */}
         {step === 'login' && (
           <>
-            <div className="divider" style={{ margin: '24px 0' }} />
-            <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            <div className="divider" style={{ margin: '20px 0' }} />
+            <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
               Don&apos;t have an account?{' '}
-              <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 600, textDecoration: 'none' }}>
+              <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 600 }}>
                 Sign up free
               </Link>
             </p>

@@ -72,16 +72,25 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div style={{ padding: '48px 0' }}>
+      <div className="page-wrapper">
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-            <div className="skeleton" style={{ height: '500px', borderRadius: '16px' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="skeleton" style={{ height: '32px', width: '80%' }} />
-              <div className="skeleton" style={{ height: '20px', width: '50%' }} />
-              <div className="skeleton" style={{ height: '40px', width: '40%' }} />
-              <div className="skeleton" style={{ height: '120px' }} />
-              <div className="skeleton" style={{ height: '48px' }} />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(340px, 100%), 1fr))',
+              gap: 'clamp(24px, 4vw, 56px)',
+              alignItems: 'start',
+            }}
+          >
+            <div className="skeleton" style={{ paddingTop: '100%', borderRadius: 'var(--radius-lg)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '8px' }}>
+              <div className="skeleton" style={{ height: '28px', width: '60%' }} />
+              <div className="skeleton" style={{ height: '40px', width: '85%' }} />
+              <div className="skeleton" style={{ height: '20px', width: '45%' }} />
+              <div className="skeleton" style={{ height: '48px', width: '50%' }} />
+              <div className="skeleton" style={{ height: '100px' }} />
+              <div className="skeleton" style={{ height: '52px' }} />
+              <div className="skeleton" style={{ height: '52px' }} />
             </div>
           </div>
         </div>
@@ -91,11 +100,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   if (error || !product) {
     return (
-      <div style={{ padding: '80px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '16px' }}>😕</div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Product not found</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>{error}</p>
-        <Link href="/products" className="btn-primary">← Back to Products</Link>
+      <div className="empty-state">
+        <div className="empty-icon">😕</div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Product not found</h2>
+        <p style={{ color: 'var(--text-muted)' }}>{error}</p>
+        <Link href="/products" className="btn-primary" style={{ marginTop: '8px' }}>
+          ← Back to Products
+        </Link>
       </div>
     );
   }
@@ -108,37 +119,42 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const allImages = product.images?.length > 0 ? product.images : [product.image];
 
   return (
-    <div style={{ padding: '32px 0', minHeight: 'calc(100vh - 64px)' }}>
+    <div className="page-wrapper">
       <div className="container">
         {/* Breadcrumb */}
-        <nav style={{ marginBottom: '24px', display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          <Link href="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Home</Link>
-          <span>›</span>
-          <Link href="/products" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Products</Link>
-          <span>›</span>
-          <Link href={`/products?category=${product.category}`} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{product.category}</Link>
-          <span>›</span>
-          <span style={{ color: 'var(--foreground)' }}>{product.name}</span>
+        <nav className="breadcrumb" style={{ marginBottom: 'clamp(16px, 3vw, 28px)' }} aria-label="Breadcrumb">
+          <Link href="/">Home</Link>
+          <span className="breadcrumb-sep">›</span>
+          <Link href="/products">Products</Link>
+          <span className="breadcrumb-sep">›</span>
+          <Link href={`/products?category=${product.category}`}>{product.category}</Link>
+          <span className="breadcrumb-sep">›</span>
+          <span className="breadcrumb-current" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+            {product.name}
+          </span>
         </nav>
 
+        {/* Product Grid */}
         <div
+          className="detail-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '48px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(340px, 100%), 1fr))',
+            gap: 'clamp(24px, 4vw, 56px)',
             alignItems: 'start',
           }}
         >
-          {/* Images */}
+          {/* Left: Images */}
           <div>
+            {/* Main Image */}
             <div
               style={{
                 position: 'relative',
-                borderRadius: '16px',
+                borderRadius: 'var(--radius-lg)',
                 overflow: 'hidden',
                 border: '1px solid var(--border)',
                 background: 'var(--surface)',
-                aspectRatio: '1',
+                aspectRatio: '1 / 1',
                 marginBottom: '12px',
               }}
             >
@@ -154,14 +170,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <span
                   style={{
                     position: 'absolute',
-                    top: '16px',
-                    left: '16px',
-                    background: 'var(--error)',
+                    top: '14px',
+                    left: '14px',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    padding: '4px 12px',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    padding: '5px 12px',
                     borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.4)',
                   }}
                 >
                   -{discountPct}% OFF
@@ -171,14 +188,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Thumbnails */}
             {allImages.length > 1 && (
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {allImages.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
                     style={{
-                      width: '70px',
-                      height: '70px',
+                      width: '68px',
+                      height: '68px',
                       borderRadius: '10px',
                       overflow: 'hidden',
                       border: `2px solid ${i === selectedImage ? 'var(--primary)' : 'var(--border)'}`,
@@ -186,7 +203,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       cursor: 'pointer',
                       position: 'relative',
                       background: 'var(--surface)',
+                      transition: 'border-color 0.2s',
+                      flexShrink: 0,
                     }}
+                    aria-label={`View image ${i + 1}`}
                   >
                     <Image src={img} alt={`View ${i + 1}`} fill style={{ objectFit: 'cover' }} unoptimized />
                   </button>
@@ -195,36 +215,67 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             )}
           </div>
 
-          {/* Details */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Brand & Category */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* Right: Details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(14px, 2vw, 20px)' }}>
+            {/* Tags Row */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span className="badge badge-primary">{product.category}</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{product.brand}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>{product.brand}</span>
               {product.isFeatured && <span className="badge badge-warning">⭐ Featured</span>}
             </div>
 
             {/* Name */}
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.2 }}>{product.name}</h1>
+            <h1
+              style={{
+                fontSize: 'clamp(1.4rem, 3vw, 1.9rem)',
+                fontWeight: 800,
+                lineHeight: 1.2,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {product.name}
+            </h1>
 
             {/* Rating */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <StarRating rating={product.rating} />
-              <span style={{ fontWeight: 700 }}>{product.rating.toFixed(1)}</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <StarRating rating={product.rating} size={17} />
+              <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>{product.rating.toFixed(1)}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
                 ({product.numReviews} reviews)
               </span>
             </div>
 
             {/* Price */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 800 }}>{formatPrice(product.price)}</span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: '12px',
+                flexWrap: 'wrap',
+                padding: '16px',
+                background: 'var(--surface-2)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <span style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', fontWeight: 900, letterSpacing: '-0.03em' }}>
+                {formatPrice(product.price)}
+              </span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <>
-                  <span className="price-original" style={{ fontSize: '1.1rem' }}>
+                  <span className="price-original" style={{ fontSize: '1.05rem' }}>
                     {formatPrice(product.originalPrice)}
                   </span>
-                  <span className="price-discount" style={{ fontSize: '1rem' }}>
+                  <span
+                    style={{
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      color: 'var(--success-light)',
+                      background: 'rgba(34,197,94,0.1)',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                    }}
+                  >
                     {discountPct}% off
                   </span>
                 </>
@@ -233,85 +284,65 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Description */}
             <div>
-              <h3 style={{ fontWeight: 700, marginBottom: '8px' }}>Description</h3>
-              <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, fontSize: '0.95rem' }}>
+              <h3 style={{ fontWeight: 700, marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Description
+              </h3>
+              <p style={{ color: 'var(--foreground-2)', lineHeight: 1.75, fontSize: '0.94rem' }}>
                 {product.description}
               </p>
             </div>
 
             {/* Tags */}
             {product.tags?.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {product.tags.map((tag) => (
-                  <span key={tag} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 10px' }}>
-                    #{tag}
-                  </span>
+                  <span key={tag} className="tag">#{tag}</span>
                 ))}
               </div>
             )}
 
-            {/* Stock */}
+            {/* Stock Indicator */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div
                 style={{
-                  width: '10px',
-                  height: '10px',
+                  width: '9px',
+                  height: '9px',
                   borderRadius: '50%',
                   background: product.stock > 0 ? 'var(--success)' : 'var(--error)',
+                  boxShadow: product.stock > 0
+                    ? '0 0 8px rgba(34,197,94,0.5)'
+                    : '0 0 8px rgba(239,68,68,0.5)',
+                  flexShrink: 0,
                 }}
               />
               <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>
                 {product.stock > 0
                   ? product.stock <= 5
                     ? `Only ${product.stock} left in stock!`
-                    : `In stock (${product.stock} available)`
+                    : `In Stock (${product.stock} available)`
                   : 'Out of Stock'}
               </span>
             </div>
 
-            {/* Quantity selector */}
+            {/* Quantity Selector */}
             {product.stock > 0 && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
-                  Quantity
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="input-label" style={{ marginBottom: '10px' }}>Quantity</label>
+                <div className="qty-control">
                   <button
+                    className="qty-btn"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                      color: 'var(--foreground)',
-                      fontSize: '20px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    disabled={quantity <= 1}
+                    aria-label="Decrease quantity"
                   >
                     −
                   </button>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, minWidth: '32px', textAlign: 'center' }}>
-                    {quantity}
-                  </span>
+                  <span className="qty-value">{quantity}</span>
                   <button
+                    className="qty-btn"
                     onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                      color: 'var(--foreground)',
-                      fontSize: '20px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    disabled={quantity >= product.stock}
+                    aria-label="Increase quantity"
                   >
                     +
                   </button>
@@ -325,57 +356,59 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <button
                   id="add-to-cart-btn"
                   onClick={handleAddToCart}
-                  className={addedToCart ? 'btn-secondary' : 'btn-secondary'}
+                  className="btn-secondary"
                   style={{
-                    flex: 1,
-                    minWidth: '140px',
-                    padding: '14px',
+                    flex: '1 1 140px',
+                    padding: '15px',
+                    fontSize: '0.95rem',
                     borderColor: addedToCart ? 'var(--success)' : undefined,
-                    color: addedToCart ? '#4ade80' : undefined,
+                    color: addedToCart ? 'var(--success-light)' : undefined,
+                    transition: 'all 0.2s',
                   }}
                 >
-                  {addedToCart ? '✅ Added!' : '🛒 Add to Cart'}
+                  {addedToCart ? '✅ Added to Cart!' : '🛒 Add to Cart'}
                 </button>
                 <button
                   id="buy-now-btn"
                   onClick={handleBuyNow}
                   className="btn-primary"
-                  style={{ flex: 1, minWidth: '140px', padding: '14px' }}
+                  style={{ flex: '1 1 140px', padding: '15px', fontSize: '0.95rem' }}
                 >
                   ⚡ Buy Now
                 </button>
               </div>
             ) : (
-              <button disabled className="btn-primary" style={{ opacity: 0.5, cursor: 'not-allowed', padding: '14px' }}>
+              <button disabled className="btn-primary" style={{ opacity: 0.5, cursor: 'not-allowed', padding: '15px' }}>
                 Out of Stock
               </button>
             )}
 
             {/* Guarantees */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '12px',
-                borderTop: '1px solid var(--border)',
-                paddingTop: '16px',
-              }}
-            >
+            <div className="guarantee-row">
               {[
                 { icon: '🚚', text: 'Free Shipping', sub: 'Over ₹1,000' },
                 { icon: '↩️', text: 'Easy Returns', sub: '7 day policy' },
                 { icon: '🔒', text: 'Secure Pay', sub: 'SSL protected' },
               ].map((item) => (
-                <div key={item.text} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', marginBottom: '4px' }}>{item.icon}</div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>{item.text}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.sub}</div>
+                <div key={item.text} className="guarantee-item">
+                  <div className="guarantee-icon">{item.icon}</div>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700 }}>{item.text}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.sub}</div>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 480px) {
+          .guarantee-row { grid-template-columns: 1fr !important; }
+          .guarantee-item { flex-direction: row; text-align: left; }
+        }
+      `}</style>
     </div>
   );
 }

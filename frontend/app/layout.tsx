@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/AuthContext';
 import { CartProvider } from '@/lib/CartContext';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -17,7 +18,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'ShopX — Modern E-Commerce',
-  description: 'Discover premium products at unbeatable prices. Shop electronics, clothing, footwear and more.',
+  description:
+    'Discover premium products at unbeatable prices. Shop electronics, clothing, footwear and more.',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,9 +38,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <CartProvider>
             <Navbar />
-            <main className="flex-1">
-              {children}
-            </main>
+            <main className="flex-1">{children}</main>
+            <Footer />
           </CartProvider>
         </AuthProvider>
       </body>

@@ -16,6 +16,7 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -65,20 +66,38 @@ export default function ProductsPage() {
   };
 
   return (
-    <div style={{ padding: '32px 0', minHeight: 'calc(100vh - 64px)' }}>
+    <div className="page-wrapper">
       <div className="container">
         {/* Header */}
-        <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '6px' }}>
-            All Products
+        <div
+          style={{
+            marginBottom: 'clamp(20px, 4vw, 36px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+            <h1 className="section-title">
+              All Products
+            </h1>
             {!loading && (
-              <span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '12px' }}>
-                ({total} items)
+              <span
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '4px',
+                  fontWeight: 400,
+                }}
+              >
+                {total} items
               </span>
             )}
-          </h1>
-          <p style={{ color: 'var(--text-muted)' }}>Discover our curated collection of premium products</p>
-          <div style={{ marginTop: '16px' }}>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+            Discover our curated collection of premium products
+          </p>
+          <div style={{ marginTop: '8px' }}>
             <button
               onClick={async () => {
                 try {
@@ -95,43 +114,48 @@ export default function ProductsPage() {
                 }
               }}
               className="btn-secondary"
-              style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              style={{ fontSize: '0.82rem', padding: '8px 16px' }}
             >
               🔐 Register Passkey (Fingerprint / FaceID)
             </button>
           </div>
         </div>
 
-        {/* Search + Sort */}
+        {/* Search + Sort Row */}
         <div
           style={{
             display: 'flex',
-            gap: '12px',
-            marginBottom: '24px',
+            gap: '10px',
+            marginBottom: '20px',
             flexWrap: 'wrap',
+            alignItems: 'stretch',
           }}
         >
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '240px' }}>
-            <input
-              id="products-search"
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products..."
-              className="input-field"
-              style={{ flex: 1 }}
-            />
-            <button type="submit" className="btn-primary" style={{ padding: '12px 20px', whiteSpace: 'nowrap' }}>
-              🔍 Search
-            </button>
+          {/* Search */}
+          <form
+            onSubmit={handleSearch}
+            style={{ flex: '1 1 220px', minWidth: '220px', display: 'flex' }}
+          >
+            <div className="search-bar" style={{ flex: 1 }}>
+              <input
+                id="products-search"
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search products..."
+                aria-label="Search products"
+              />
+              <button type="submit">🔍 Search</button>
+            </div>
           </form>
 
+          {/* Sort */}
           <select
             id="products-sort"
             value={sort}
             onChange={(e) => { setSort(e.target.value); setPage(1); }}
             className="input-field"
-            style={{ width: 'auto', minWidth: '160px' }}
+            style={{ width: 'auto', minWidth: '170px', flex: '0 1 auto' }}
           >
             <option value="default">Sort: Featured</option>
             <option value="price_asc">Price: Low to High</option>
@@ -141,25 +165,23 @@ export default function ProductsPage() {
           </select>
         </div>
 
-        {/* Category filters */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '28px' }}>
+        {/* Category Filters */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            marginBottom: 'clamp(20px, 3vw, 32px)',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+          }}
+        >
           {['all', ...categories].map((cat) => (
             <button
               key={cat}
               id={`category-${cat}`}
               onClick={() => handleCategoryChange(cat)}
-              style={{
-                padding: '6px 16px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: category === cat ? 'var(--primary)' : 'var(--border)',
-                background: category === cat ? 'rgba(99,102,241,0.15)' : 'transparent',
-                color: category === cat ? 'var(--primary-light)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                transition: 'all 0.2s',
-              }}
+              className={`filter-pill ${category === cat ? 'active' : ''}`}
             >
               {cat === 'all' ? '🏪 All' : cat}
             </button>
@@ -173,36 +195,44 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {/* Loading skeleton */}
+        {/* Loading Skeleton */}
         {loading && (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: '24px',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
+              gap: 'clamp(14px, 2vw, 24px)',
             }}
           >
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                <div className="skeleton" style={{ height: '220px' }} />
-                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div className="skeleton" style={{ height: '16px', width: '60%' }} />
-                  <div className="skeleton" style={{ height: '20px', width: '90%' }} />
-                  <div className="skeleton" style={{ height: '16px', width: '40%' }} />
-                  <div className="skeleton" style={{ height: '24px', width: '50%' }} />
+              <div
+                key={i}
+                style={{
+                  borderRadius: 'var(--radius-lg)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                }}
+              >
+                <div className="skeleton" style={{ paddingTop: '75%' }} />
+                <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className="skeleton" style={{ height: '14px', width: '50%' }} />
+                  <div className="skeleton" style={{ height: '18px', width: '85%' }} />
+                  <div className="skeleton" style={{ height: '14px', width: '65%' }} />
+                  <div className="skeleton" style={{ height: '22px', width: '45%' }} />
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Products grid */}
+        {/* Products Grid */}
         {!loading && products.length > 0 && (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: '24px',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
+              gap: 'clamp(14px, 2vw, 24px)',
             }}
           >
             {products.map((product) => (
@@ -211,24 +241,18 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty State */}
         {!loading && products.length === 0 && !error && (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '80px 24px',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🔍</div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px', color: 'var(--foreground)' }}>
-              No products found
-            </h3>
-            <p>Try adjusting your search or category filter</p>
+          <div className="empty-state">
+            <div className="empty-icon">🔍</div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>No products found</h3>
+            <p style={{ color: 'var(--text-muted)', maxWidth: '320px' }}>
+              Try adjusting your search or category filter
+            </p>
             <button
               onClick={() => { setSearch(''); setCategory('all'); setPage(1); }}
               className="btn-secondary"
-              style={{ marginTop: '20px' }}
+              style={{ marginTop: '8px' }}
             >
               Clear Filters
             </button>
@@ -242,15 +266,16 @@ export default function ProductsPage() {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              gap: '8px',
-              marginTop: '40px',
+              gap: '6px',
+              marginTop: 'clamp(32px, 5vw, 52px)',
+              flexWrap: 'wrap',
             }}
           >
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="btn-secondary"
-              style={{ padding: '8px 16px' }}
+              className="btn-secondary page-btn"
+              style={{ padding: '0 16px', width: 'auto' }}
             >
               ← Prev
             </button>
@@ -258,18 +283,7 @@ export default function ProductsPage() {
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: '1px solid',
-                  borderColor: p === page ? 'var(--primary)' : 'var(--border)',
-                  background: p === page ? 'rgba(99,102,241,0.2)' : 'transparent',
-                  color: p === page ? 'var(--primary-light)' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontWeight: p === page ? 700 : 400,
-                  fontSize: '0.9rem',
-                }}
+                className={`page-btn ${p === page ? 'active' : ''}`}
               >
                 {p}
               </button>
@@ -277,8 +291,8 @@ export default function ProductsPage() {
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
-              className="btn-secondary"
-              style={{ padding: '8px 16px' }}
+              className="btn-secondary page-btn"
+              style={{ padding: '0 16px', width: 'auto' }}
             >
               Next →
             </button>

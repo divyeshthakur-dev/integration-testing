@@ -10,14 +10,14 @@ import { ApiResponse, User } from '@/lib/types';
 export default function SignupPage() {
   const router = useRouter();
   const { login } = useAuth();
-  
+
   const [step, setStep] = useState<'signup' | 'totp' | 'recovery'>('signup');
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [totpCode, setTotpCode] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [tempSecret, setTempSecret] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -38,12 +38,11 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      const { data } = await api.post<ApiResponse<{ totpSetup?: { qrCodeDataUrl: string, secret: string } }>>('/api/auth/signup', {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-      });
-      
+      const { data } = await api.post<ApiResponse<{ totpSetup?: { qrCodeDataUrl: string; secret: string } }>>(
+        '/api/auth/signup',
+        { name: form.name, email: form.email, password: form.password }
+      );
+
       if (data.data?.totpSetup?.qrCodeDataUrl) {
         setTempSecret(data.data.totpSetup.secret);
         setQrCodeUrl(data.data.totpSetup.qrCodeDataUrl);
@@ -67,12 +66,12 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      const { data } = await api.post('/api/auth/verify-totp', { 
+      const { data } = await api.post('/api/auth/verify-totp', {
         name: form.name,
         email: form.email,
         password: form.password,
         secret: tempSecret,
-        token: totpCode 
+        token: totpCode,
       });
       setRecoveryCodes(data.data.recoveryCodes);
       setStep('recovery');
@@ -84,62 +83,71 @@ export default function SignupPage() {
     }
   };
 
+  const stepMeta = {
+    signup:   { icon: '👤', title: 'Create Account',    sub: 'Join ShopX and start shopping' },
+    totp:     { icon: '🔐', title: 'Set up 2FA',        sub: 'Scan the QR code with your authenticator app' },
+    recovery: { icon: '🛡️', title: 'Recovery Codes',    sub: 'Save these codes somewhere safe' },
+  };
+  const meta = stepMeta[step];
+
   return (
     <div
       style={{
-        minHeight: 'calc(100vh - 64px)',
+        minHeight: 'calc(100vh - var(--nav-height))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '48px 24px',
+        padding: 'clamp(24px, 5vw, 60px) 16px',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      {/* Background orb */}
+      {/* Background orbs */}
       <div
+        aria-hidden="true"
         style={{
           position: 'fixed',
-          width: '500px',
-          height: '500px',
+          width: '500px', height: '500px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)',
-          top: '-100px',
-          right: '-100px',
+          background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)',
+          top: '-100px', right: '-100px',
           pointerEvents: 'none',
-          zIndex: 0,
         }}
       />
 
+      {/* Card */}
       <div
         className="glass-card animate-fade-in"
-        style={{ width: '100%', maxWidth: step === 'recovery' ? '500px' : '440px', padding: '40px', position: 'relative', zIndex: 1 }}
+        style={{
+          width: '100%',
+          maxWidth: step === 'recovery' ? '480px' : '420px',
+          padding: 'clamp(28px, 5vw, 44px)',
+          position: 'relative',
+          zIndex: 1,
+        }}
       >
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '58px',
+              height: '58px',
               background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-              borderRadius: '16px',
+              borderRadius: '18px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '28px',
               margin: '0 auto 16px',
+              boxShadow: '0 8px 24px rgba(99,102,241,0.35)',
             }}
           >
-            {step === 'signup' ? '👤' : step === 'totp' ? '🔐' : '📄'}
+            {meta.icon}
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px' }}>
-            {step === 'signup' && 'Create Account'}
-            {step === 'totp' && 'Set up 2FA'}
-            {step === 'recovery' && 'Recovery Codes'}
+          <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 1.85rem)', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.02em' }}>
+            {meta.title}
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            {step === 'signup' && 'Join ShopX and start shopping'}
-            {step === 'totp' && 'Scan the QR code with your authenticator app'}
-            {step === 'recovery' && 'Save these codes in a secure place'}
-          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{meta.sub}</p>
         </div>
 
         {/* Error */}
@@ -149,12 +157,11 @@ export default function SignupPage() {
           </div>
         )}
 
+        {/* Step: Signup Form */}
         {step === 'signup' && (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                Full Name
-              </label>
+              <label className="input-label" htmlFor="signup-name">Full Name</label>
               <input
                 id="signup-name"
                 type="text"
@@ -164,13 +171,12 @@ export default function SignupPage() {
                 placeholder="John Doe"
                 required
                 className="input-field"
+                autoComplete="name"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                Email Address
-              </label>
+              <label className="input-label" htmlFor="signup-email">Email Address</label>
               <input
                 id="signup-email"
                 type="email"
@@ -180,13 +186,12 @@ export default function SignupPage() {
                 placeholder="you@example.com"
                 required
                 className="input-field"
+                autoComplete="email"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                Password
-              </label>
+              <label className="input-label" htmlFor="signup-password">Password</label>
               <input
                 id="signup-password"
                 type="password"
@@ -196,13 +201,12 @@ export default function SignupPage() {
                 placeholder="Min. 6 characters"
                 required
                 className="input-field"
+                autoComplete="new-password"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                Confirm Password
-              </label>
+              <label className="input-label" htmlFor="signup-confirm">Confirm Password</label>
               <input
                 id="signup-confirm"
                 type="password"
@@ -212,6 +216,7 @@ export default function SignupPage() {
                 placeholder="Re-enter password"
                 required
                 className="input-field"
+                autoComplete="new-password"
               />
             </div>
 
@@ -220,7 +225,7 @@ export default function SignupPage() {
               type="submit"
               disabled={loading}
               className="btn-primary"
-              style={{ width: '100%', padding: '14px', fontSize: '1rem', marginTop: '4px' }}
+              style={{ width: '100%', padding: '15px', fontSize: '1rem', marginTop: '4px' }}
             >
               {loading ? (
                 <>
@@ -234,18 +239,30 @@ export default function SignupPage() {
           </form>
         )}
 
+        {/* Step: TOTP Setup */}
         {step === 'totp' && (
-          <form onSubmit={handleVerifyTotp} style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+          <form onSubmit={handleVerifyTotp} style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
             {qrCodeUrl && (
-              <div style={{ background: '#fff', padding: '10px', borderRadius: '8px' }}>
-                <img src={qrCodeUrl} alt="2FA QR Code" style={{ width: '200px', height: '200px' }} />
+              <div>
+                <div
+                  style={{
+                    background: '#fff',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    display: 'inline-block',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  <img src={qrCodeUrl} alt="2FA QR Code" style={{ width: '180px', height: '180px', display: 'block' }} />
+                </div>
+                <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '10px' }}>
+                  Scan with Google Authenticator, Authy, or similar
+                </p>
               </div>
             )}
-            
+
             <div style={{ width: '100%' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                Authenticator Code
-              </label>
+              <label className="input-label" htmlFor="totp-code">Authenticator Code</label>
               <input
                 id="totp-code"
                 type="text"
@@ -254,7 +271,10 @@ export default function SignupPage() {
                 placeholder="123456"
                 required
                 className="input-field"
-                style={{ textAlign: 'center', letterSpacing: '4px', fontSize: '1.2rem' }}
+                style={{ textAlign: 'center', letterSpacing: '6px', fontSize: '1.25rem', fontWeight: 700 }}
+                maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
               />
             </div>
 
@@ -263,49 +283,68 @@ export default function SignupPage() {
               type="submit"
               disabled={loading}
               className="btn-primary"
-              style={{ width: '100%', padding: '14px', fontSize: '1rem', marginTop: '4px' }}
+              style={{ width: '100%', padding: '15px', fontSize: '1rem' }}
             >
-              {loading ? 'Verifying...' : 'Verify Setup'}
+              {loading ? 'Verifying...' : '✓ Verify Setup'}
             </button>
           </form>
         )}
 
+        {/* Step: Recovery Codes */}
         {step === 'recovery' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="alert alert-warning" style={{ fontSize: '0.84rem' }}>
+              ⚠️ Save these codes now! Each can be used once to log in if you lose access to your authenticator.
+            </div>
+
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: '8px',
-                background: 'rgba(0,0,0,0.2)',
-                padding: '16px',
-                borderRadius: '8px',
-                fontFamily: 'monospace',
-                fontSize: '1rem',
+                background: 'rgba(0,0,0,0.25)',
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                fontFamily: 'var(--font-geist-mono)',
+                fontSize: '0.92rem',
               }}
             >
               {recoveryCodes.map((code, idx) => (
-                <div key={idx} style={{ textAlign: 'center', padding: '4px' }}>
+                <div
+                  key={idx}
+                  style={{
+                    textAlign: 'center',
+                    padding: '8px 4px',
+                    borderRadius: '6px',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--foreground-2)',
+                    letterSpacing: '1px',
+                  }}
+                >
                   {code}
                 </div>
               ))}
             </div>
+
             <button
               onClick={() => router.push('/login')}
               className="btn-primary"
-              style={{ width: '100%', padding: '14px', fontSize: '1rem', marginTop: '4px' }}
+              style={{ width: '100%', padding: '15px', fontSize: '1rem' }}
             >
-              I have saved these codes
+              ✅ I have saved these codes
             </button>
           </div>
         )}
 
+        {/* Footer: Sign-in Link */}
         {step === 'signup' && (
           <>
-            <div className="divider" />
-            <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            <div className="divider" style={{ margin: '20px 0' }} />
+            <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
               Already have an account?{' '}
-              <Link href="/login" style={{ color: 'var(--primary-light)', fontWeight: 600, textDecoration: 'none' }}>
+              <Link href="/login" style={{ color: 'var(--primary-light)', fontWeight: 600 }}>
                 Sign in
               </Link>
             </p>
