@@ -20,6 +20,17 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Password is required'],
       minlength: 6,
     },
+    totpSecret: {
+      type: String,
+    },
+    totpVerified: {
+      type: Boolean,
+      default: false,
+    },
+    recoveryCodes: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

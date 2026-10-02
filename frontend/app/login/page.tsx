@@ -10,7 +10,11 @@ import { ApiResponse, User } from '@/lib/types';
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  
+  const [step, setStep] = useState<'login' | 'totp'>('login');
   const [form, setForm] = useState({ email: '', password: '' });
+  const [totpCode, setTotpCode] = useState('');
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,10 +26,19 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    
     try {
-      const { data } = await api.post<ApiResponse<User>>('/api/auth/login', form);
-      login(data.data);
-      router.push('/products');
+      const payload = step === 'totp' ? { ...form, totpCode } : form;
+      // Use any to bypass tight type if it complains about require2FA
+      const { data } = await api.post<any>('/api/auth/login', payload);
+      
+      if (data.require2FA) {
+        setStep('totp');
+      } else {
+        login(data.data);
+        router.push('/products');
+      }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -78,13 +91,13 @@ export default function LoginPage() {
               margin: '0 auto 16px',
             }}
           >
-            🔑
+            {step === 'login' ? '🔑' : '🔐'}
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px' }}>
-            Welcome Back
+            {step === 'login' ? 'Welcome Back' : 'Two-Factor Authentication'}
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Sign in to your ShopX account
+            {step === 'login' ? 'Sign in to your ShopX account' : 'Enter the code from your authenticator app or a recovery code'}
           </p>
         </div>
 
@@ -96,53 +109,76 @@ export default function LoginPage() {
         )}
 
         {/* Demo credentials hint */}
-        <div
-          style={{
-            background: 'rgba(99,102,241,0.08)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            borderRadius: '10px',
-            padding: '12px 16px',
-            marginBottom: '20px',
-            fontSize: '0.82rem',
-            color: 'var(--primary-light)',
-          }}
-        >
-          💡 New here? <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>Create a free account</Link> to get started.
-        </div>
+        {step === 'login' && (
+          <div
+            style={{
+              background: 'rgba(99,102,241,0.08)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              fontSize: '0.82rem',
+              color: 'var(--primary-light)',
+            }}
+          >
+            💡 New here? <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>Create a free account</Link> to get started.
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-              Email Address
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-              required
-              className="input-field"
-            />
-          </div>
+          {step === 'login' ? (
+            <>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
+                  Email Address
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  required
+                  className="input-field"
+                />
+              </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Your password"
-              required
-              className="input-field"
-            />
-          </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Your password"
+                  required
+                  className="input-field"
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)' }}>
+                Authenticator Code
+              </label>
+              <input
+                id="login-totp"
+                type="text"
+                name="totpCode"
+                value={totpCode}
+                onChange={(e) => { setTotpCode(e.target.value); setError(''); }}
+                placeholder="123456"
+                required
+                className="input-field"
+                style={{ textAlign: 'center', letterSpacing: '4px', fontSize: '1.2rem' }}
+              />
+            </div>
+          )}
 
           <button
             id="login-submit"
@@ -157,19 +193,22 @@ export default function LoginPage() {
                 Signing in...
               </>
             ) : (
-              '🔐 Sign In'
+              step === 'login' ? '🔐 Sign In' : 'Verify'
             )}
           </button>
         </form>
 
-        <div className="divider" />
-
-        <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 600, textDecoration: 'none' }}>
-            Sign up free
-          </Link>
-        </p>
+        {step === 'login' && (
+          <>
+            <div className="divider" />
+            <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 600, textDecoration: 'none' }}>
+                Sign up free
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
