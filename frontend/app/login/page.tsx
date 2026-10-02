@@ -199,8 +199,46 @@ export default function LoginPage() {
         </form>
 
         {step === 'login' && (
+          <div style={{ marginTop: '16px' }}>
+            <div className="divider" style={{ margin: '16px 0' }} />
+            <button
+              type="button"
+              disabled={loading}
+              onClick={async () => {
+                setLoading(true);
+                setError('');
+                try {
+                  const { startAuthentication } = await import('@simplewebauthn/browser');
+                  const resp = await api.get('/api/auth/passkey/login-options' + (form.email ? `?email=${encodeURIComponent(form.email)}` : ''));
+                  const { options, sessionId } = resp.data.data;
+                  const asseResp = await startAuthentication({ optionsJSON: options });
+                  
+                  const verifyResp = await api.post('/api/auth/passkey/login-verify', {
+                    ...asseResp,
+                    extraInfo: { email: form.email, sessionId }
+                  });
+                  
+                  if (verifyResp.data.success) {
+                    login(verifyResp.data.data);
+                    router.push('/products');
+                  }
+                } catch (err: any) {
+                  setError(err.response?.data?.message || err.message || 'Passkey login failed');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="btn-secondary"
+              style={{ width: '100%', padding: '14px', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+              👆 Use Passkey (Fingerprint / Face ID)
+            </button>
+          </div>
+        )}
+
+        {step === 'login' && (
           <>
-            <div className="divider" />
+            <div className="divider" style={{ margin: '24px 0' }} />
             <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
               Don&apos;t have an account?{' '}
               <Link href="/signup" style={{ color: 'var(--primary-light)', fontWeight: 600, textDecoration: 'none' }}>

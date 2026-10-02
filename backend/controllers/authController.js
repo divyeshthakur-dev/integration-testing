@@ -66,30 +66,7 @@ const login = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Account not verified. Please sign up again to complete 2FA setup.' });
     }
 
-    if (user.totpSecret) {
-      if (!totpCode) {
-        return res.json({ success: true, require2FA: true, message: '2FA code required' });
-      }
-
-      const sanitizedToken = String(totpCode).replace(/\s+/g, '');
-      const verified = speakeasy.totp.verify({
-        secret: user.totpSecret,
-        encoding: 'base32',
-        token: sanitizedToken,
-        window: 2,
-      });
-
-      if (!verified) {
-        // Check if it's a valid recovery code
-        if (user.recoveryCodes && user.recoveryCodes.includes(sanitizedToken)) {
-          // Consume the recovery code
-          user.recoveryCodes = user.recoveryCodes.filter((c) => c !== sanitizedToken);
-          await user.save();
-        } else {
-          return res.status(400).json({ success: false, message: 'Invalid 2FA code' });
-        }
-      }
-    }
+    // Removed 2FA check during login as requested
 
     const token = generateToken(user._id);
 
@@ -199,4 +176,223 @@ const verifyTOTP = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, getMe, verifyTOTP };
+const {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} = require('@simplewebauthn/server');
+
+const getOrigin = (req) => {
+  // Try to construct the exact origin the frontend is running on
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  
+  // If we are getting API requests from localhost:3000, the origin should be http://localhost:3000
+  // Since the API is on port 5000 and the frontend is on 3000, req.headers.origin is the safest bet!
+  if (req.headers.origin) {
+    return req.headers.origin;
+  }
+  return `${protocol}://${host}`;
+};
+
+const getRpID = (req) => {
+  try {
+    const originUrl = new URL(getOrigin(req));
+    return originUrl.hostname;
+  } catch (e) {
+    return 'localhost';
+  }
+};
+
+// @desc    Generate WebAuthn Registration Options
+const generateWebAuthnRegistrationOptions = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID: getRpID(req),
+      userID: user._id.toString(),
+      userName: user.email,
+      attestationType: 'none',
+      excludeCredentials: user.passkeys.map(key => ({
+        id: Buffer.from(key.credentialID, 'base64url'),
+        type: 'public-key',
+        transports: key.transports,
+      })),
+      authenticatorSelection: {
+        residentKey: 'required',
+        userVerification: 'preferred',
+      },
+    });
+
+    user.currentChallenge = options.challenge;
+    await user.save();
+
+    res.json({ success: true, data: options });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify WebAuthn Registration
+const verifyWebAuthnRegistration = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const body = req.body;
+
+    let verification;
+    try {
+      verification = await verifyRegistrationResponse({
+        response: body,
+        expectedChallenge: user.currentChallenge,
+        expectedOrigin: getOrigin(req),
+        expectedRPID: getRpID(req),
+      });
+    } catch (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    if (verification.verified && verification.registrationInfo) {
+      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      
+      user.passkeys.push({
+        credentialID: Buffer.from(credentialID).toString('base64url'),
+        credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64url'),
+        counter,
+        transports: body.response.transports,
+      });
+      user.currentChallenge = undefined;
+      await user.save();
+
+      return res.json({ success: true, message: 'Passkey registered successfully' });
+    }
+    return res.status(400).json({ success: false, message: 'Verification failed' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Memory store for login challenges (In prod, use Redis or DB)
+const loginChallenges = new Map();
+
+// @desc    Generate WebAuthn Login Options
+const generateWebAuthnLoginOptions = async (req, res, next) => {
+  try {
+    const { email } = req.query;
+    let allowCredentials = [];
+
+    // If the user provided an email, we can limit the passkey prompt to their specific credentials
+    if (email) {
+      const user = await User.findOne({ email });
+      if (user && user.passkeys && user.passkeys.length > 0) {
+        allowCredentials = user.passkeys.map(key => ({
+          id: Buffer.from(key.credentialID, 'base64url'),
+          type: 'public-key',
+          transports: key.transports,
+        }));
+      }
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID: getRpID(req),
+      userVerification: 'preferred',
+      allowCredentials,
+    });
+
+    // Store challenge globally mapped by a random session ID
+    const sessionId = Math.random().toString(36).substring(7);
+    loginChallenges.set(sessionId, options.challenge);
+    
+    // Auto cleanup after 5 mins
+    setTimeout(() => loginChallenges.delete(sessionId), 5 * 60 * 1000);
+
+    res.json({ success: true, data: { options, sessionId } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify WebAuthn Login
+const verifyWebAuthnLogin = async (req, res, next) => {
+  try {
+    const body = req.body;
+    const { email, sessionId } = req.body.extraInfo || {};
+
+    const expectedChallenge = loginChallenges.get(sessionId);
+    if (!expectedChallenge) {
+      return res.status(400).json({ success: false, message: 'Challenge expired or invalid' });
+    }
+
+    let user;
+    if (email) {
+      user = await User.findOne({ email });
+    } else {
+      // Find user by credential ID (discoverable credential)
+      const credID = body.id;
+      // Because base64url encoding might vary slightly, we should ideally search by credentialID string
+      user = await User.findOne({ 'passkeys.credentialID': credID });
+    }
+
+    if (!user) return res.status(400).json({ success: false, message: 'User not found' });
+
+    const passkey = user.passkeys.find(k => k.credentialID === body.id);
+    if (!passkey) return res.status(400).json({ success: false, message: 'Credential not found' });
+
+    let verification;
+    try {
+      verification = await verifyAuthenticationResponse({
+        response: body,
+        expectedChallenge,
+        expectedOrigin: getOrigin(req),
+        expectedRPID: getRpID(req),
+        authenticator: {
+          credentialID: Buffer.from(passkey.credentialID, 'base64url'),
+          credentialPublicKey: Buffer.from(passkey.credentialPublicKey, 'base64url'),
+          counter: passkey.counter,
+          transports: passkey.transports,
+        },
+      });
+    } catch (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    if (verification.verified) {
+      // Consume challenge
+      loginChallenges.delete(sessionId);
+      
+      // Update counter
+      passkey.counter = verification.authenticationInfo.newCounter;
+      await user.save();
+
+      const token = generateToken(user._id);
+      return res.json({
+        success: true,
+        message: 'Passkey login successful',
+        data: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          token,
+          totpVerified: user.totpVerified,
+        },
+      });
+    }
+    return res.status(400).json({ success: false, message: 'Passkey verification failed' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { 
+  signup, 
+  login, 
+  getMe, 
+  verifyTOTP,
+  generateWebAuthnRegistrationOptions,
+  verifyWebAuthnRegistration,
+  generateWebAuthnLoginOptions,
+  verifyWebAuthnLogin,
+};

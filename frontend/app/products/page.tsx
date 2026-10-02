@@ -78,6 +78,28 @@ export default function ProductsPage() {
             )}
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>Discover our curated collection of premium products</p>
+          <div style={{ marginTop: '16px' }}>
+            <button
+              onClick={async () => {
+                try {
+                  const { startRegistration } = await import('@simplewebauthn/browser');
+                  const resp = await api.get('/api/auth/passkey/register-options');
+                  const options = resp.data.data;
+                  const attResp = await startRegistration({ optionsJSON: options });
+                  const verificationResp = await api.post('/api/auth/passkey/register-verify', attResp);
+                  if (verificationResp.data.success) {
+                    alert('Passkey registered successfully!');
+                  }
+                } catch (err: any) {
+                  alert(err.response?.data?.message || err.message || 'Passkey registration failed');
+                }
+              }}
+              className="btn-secondary"
+              style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+            >
+              🔐 Register Passkey (Fingerprint / FaceID)
+            </button>
+          </div>
         </div>
 
         {/* Search + Sort */}

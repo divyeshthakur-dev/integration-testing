@@ -31,6 +31,15 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    currentChallenge: {
+      type: String,
+    },
+    passkeys: [{
+      credentialID: String,
+      credentialPublicKey: String,
+      counter: Number,
+      transports: [String],
+    }],
   },
   { timestamps: true }
 );
