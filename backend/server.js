@@ -10,6 +10,7 @@ const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const emailRoutes = require('./routes/emailRoutes');
+const stripeRoutes = require('./routes/stripeRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -24,7 +25,12 @@ app.use(
   })
 );
 
-// Body parser
+// Stripe webhook — raw body required for signature verification.
+// Must be mounted BEFORE express.json() so the body stays unparsed.
+const { handleWebhook } = require('./controllers/stripeController');
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleWebhook);
+
+// Body parser (all non-webhook routes)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,6 +45,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/email', emailRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // 404 handler
 app.use((req, res) => {
