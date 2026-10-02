@@ -16,6 +16,31 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
+// Declared at module level to avoid 'components created during render' lint error
+function FieldError({
+  name,
+  errors,
+}: {
+  name: keyof ShippingAddress;
+  errors: Partial<ShippingAddress>;
+}) {
+  if (!errors[name]) return null;
+  return (
+    <p
+      style={{
+        color: 'var(--error-light)',
+        fontSize: '0.75rem',
+        marginTop: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+      }}
+    >
+      ⚠ {errors[name]}
+    </p>
+  );
+}
+
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
@@ -120,13 +145,6 @@ export default function CheckoutPage() {
 
   if (!isAuthenticated || cartCount === 0) return null;
 
-  const FieldError = ({ name }: { name: keyof ShippingAddress }) =>
-    errors[name] ? (
-      <p style={{ color: 'var(--error-light)', fontSize: '0.75rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-        ⚠ {errors[name]}
-      </p>
-    ) : null;
-
   return (
     <div className="page-wrapper">
       <div className="container" style={{ maxWidth: '1080px' }}>
@@ -173,7 +191,7 @@ export default function CheckoutPage() {
                     placeholder="John Doe"
                     autoComplete="name"
                   />
-                  <FieldError name="fullName" />
+                  <FieldError name="fullName" errors={errors} />
                 </div>
 
                 {/* Phone */}
@@ -190,7 +208,7 @@ export default function CheckoutPage() {
                     inputMode="numeric"
                     autoComplete="tel"
                   />
-                  <FieldError name="phone" />
+                  <FieldError name="phone" errors={errors} />
                 </div>
 
                 {/* Street Address */}
@@ -205,7 +223,7 @@ export default function CheckoutPage() {
                     placeholder="House no., Street, Area"
                     autoComplete="street-address"
                   />
-                  <FieldError name="address" />
+                  <FieldError name="address" errors={errors} />
                 </div>
 
                 {/* City */}
@@ -220,7 +238,7 @@ export default function CheckoutPage() {
                     placeholder="City"
                     autoComplete="address-level2"
                   />
-                  <FieldError name="city" />
+                  <FieldError name="city" errors={errors} />
                 </div>
 
                 {/* PIN Code */}
@@ -237,7 +255,7 @@ export default function CheckoutPage() {
                     inputMode="numeric"
                     autoComplete="postal-code"
                   />
-                  <FieldError name="postalCode" />
+                  <FieldError name="postalCode" errors={errors} />
                 </div>
 
                 {/* State */}
@@ -255,7 +273,7 @@ export default function CheckoutPage() {
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                  <FieldError name="state" />
+                  <FieldError name="state" errors={errors} />
                 </div>
               </div>
 
