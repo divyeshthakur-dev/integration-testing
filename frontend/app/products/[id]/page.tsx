@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import api from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/lib/CartContext';
-import { Product, ApiResponse } from '@/lib/types';
+import { queryKeys, fetchProductById } from '@/lib/queries';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -36,26 +36,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const { addToCart } = useCart();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const { data } = await api.get<ApiResponse<Product>>(`/api/products/${id}`);
-        setProduct(data.data);
-      } catch {
-        setError('Product not found');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProduct();
-  }, [id]);
+  const {
+    data: product,
+    isLoading: loading,
+    isError,
+    error: queryError,
+  } = useQuery({
+    queryKey: queryKeys.products.detail(id),
+    queryFn: () => fetchProductById(id),
+    enabled: !!id,
+  });
+
+  const error = isError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Product not found'
+    : '';
 
   const handleAddToCart = () => {
     if (!product) return;

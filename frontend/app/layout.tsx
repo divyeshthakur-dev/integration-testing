@@ -5,6 +5,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import { CartProvider } from '@/lib/CartContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import QueryProvider from '@/components/QueryProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -35,13 +36,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <CartProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </CartProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <CartProvider>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </CartProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

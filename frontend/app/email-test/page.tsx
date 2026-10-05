@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 export default function EmailTestPage() {
@@ -13,7 +14,27 @@ export default function EmailTestPage() {
     type: null,
     message: '',
   });
-  const [loading, setLoading] = useState(false);
+
+  const emailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/email/send', { provider, from, to, subject, body });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setStatus({ type: 'success', message: data?.message || 'Email sent successfully!' });
+    },
+    onError: (err: unknown) => {
+      let errorMsg = 'Failed to send email';
+      if (err instanceof Error) errorMsg = err.message;
+      if (typeof err === 'object' && err !== null && 'response' in err) {
+        const axErr = err as { response?: { data?: { message?: string } } };
+        if (axErr.response?.data?.message) errorMsg = axErr.response.data.message;
+      }
+      setStatus({ type: 'error', message: errorMsg });
+    },
+  });
+
+  const loading = emailMutation.isPending;
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
@@ -36,25 +57,10 @@ export default function EmailTestPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setStatus({ type: null, message: '' });
-
-    try {
-      const response = await api.post('/email/send', { provider, from, to, subject, body });
-      setStatus({ type: 'success', message: response.data.message || 'Email sent successfully!' });
-    } catch (err: unknown) {
-      let errorMsg = 'Failed to send email';
-      if (err instanceof Error) errorMsg = err.message;
-      if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axErr = err as { response?: { data?: { message?: string } } };
-        if (axErr.response?.data?.message) errorMsg = axErr.response.data.message;
-      }
-      setStatus({ type: 'error', message: errorMsg });
-    } finally {
-      setLoading(false);
-    }
+    emailMutation.mutate();
   };
 
   return (

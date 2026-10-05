@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import api from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
-import { ApiResponse, Order } from '@/lib/types';
+import { queryKeys, fetchMyOrders } from '@/lib/queries';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -27,24 +27,29 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string; 
 export default function OrdersPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) { router.push('/login'); return; }
-    const fetchOrders = async () => {
-      try {
-        const { data } = await api.get<ApiResponse<Order[]>>('/api/orders/my-orders');
-        setOrders(data.data);
-      } catch {
-        setError('Failed to load orders');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
   }, [isAuthenticated, router]);
+
+  const {
+    data: orders = [],
+    isLoading: loading,
+    isError,
+    error: queryError,
+  } = useQuery({
+    queryKey: queryKeys.orders.myOrders,
+    queryFn: fetchMyOrders,
+    enabled: isAuthenticated,
+  });
+
+  const error = isError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Failed to load orders'
+    : '';
 
   if (!isAuthenticated) return null;
 

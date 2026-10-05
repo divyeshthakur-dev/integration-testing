@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import api from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
-import { ApiResponse, Order } from '@/lib/types';
+import { queryKeys, fetchOrderById } from '@/lib/queries';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -20,24 +20,29 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) { router.push('/login'); return; }
-    const fetchOrder = async () => {
-      try {
-        const { data } = await api.get<ApiResponse<Order>>(`/api/orders/${id}`);
-        setOrder(data.data);
-      } catch {
-        setError('Could not load order details');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrder();
-  }, [id, isAuthenticated, router]);
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  const {
+    data: order,
+    isLoading: loading,
+    isError,
+    error: queryError,
+  } = useQuery({
+    queryKey: queryKeys.orders.detail(id),
+    queryFn: () => fetchOrderById(id),
+    enabled: isAuthenticated && !!id,
+  });
+
+  const error = isError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Could not load order details'
+    : '';
 
   if (loading) {
     return (

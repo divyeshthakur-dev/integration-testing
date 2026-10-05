@@ -1,69 +1,82 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Product, ApiResponse, ProductsResponse } from '@/lib/types';
 import ProductCard from '@/components/ProductCard';
+import { queryKeys, fetchProducts, fetchCategories } from '@/lib/queries';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('default');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const params: Record<string, string | number> = { page, limit: 12 };
-      if (search) params.search = search;
-      if (category !== 'all') params.category = category;
-      if (sort !== 'default') params.sort = sort;
+  // Categories query — cached for 10 minutes to avoid redundant network roundtrips
+  const { data: categories = [] } = useQuery({
+    queryKey: queryKeys.products.categories,
+    queryFn: fetchCategories,
+    staleTime: 10 * 60 * 1000,
+  });
 
-      const { data } = await api.get<ApiResponse<ProductsResponse>>('/api/products', { params });
-      setProducts(data.data.products);
-      setTotalPages(data.data.pages);
-      setTotal(data.data.total);
-    } catch {
-      setError('Failed to load products. Make sure the backend is running.');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, category, sort, page]);
+  // Products query — with keepPreviousData for smooth pagination transitions
+  const {
+    data: productsData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.products.list({
+      page,
+      search: appliedSearch,
+      category,
+      sort,
+    }),
+    queryFn: () =>
+      fetchProducts({
+        page,
+        limit: 12,
+        search: appliedSearch,
+        category,
+        sort,
+      }),
+    placeholderData: keepPreviousData,
+  });
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get<ApiResponse<string[]>>('/api/products/categories');
-        setCategories(data.data);
-      } catch {
-        // silent
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      await fetchProducts();
-    })();
-  }, [fetchProducts]);
+  const products = productsData?.products ?? [];
+  const totalPages = productsData?.pages ?? 1;
+  const total = productsData?.total ?? 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchProducts();
+    setAppliedSearch(searchInput.trim());
   };
 
   const handleCategoryChange = (cat: string) => {
     setCategory(cat);
     setPage(1);
   };
+
+  const handleSortChange = (newSort: string) => {
+    setSort(newSort);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setAppliedSearch('');
+    setCategory('all');
+    setSort('default');
+    setPage(1);
+  };
+
+  const errorMessage = isError
+    ? error instanceof Error
+      ? error.message
+      : 'Failed to load products. Make sure the backend is running.'
+    : '';
 
   return (
     <div className="page-wrapper">
@@ -78,10 +91,8 @@ export default function ProductsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-            <h1 className="section-title">
-              All Products
-            </h1>
-            {!loading && (
+            <h1 className="section-title">All Products</h1>
+            {!isLoading && (
               <span
                 style={{
                   fontSize: '0.9rem',
@@ -141,8 +152,8 @@ export default function ProductsPage() {
               <input
                 id="products-search"
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search products..."
                 aria-label="Search products"
               />
@@ -154,7 +165,7 @@ export default function ProductsPage() {
           <select
             id="products-sort"
             value={sort}
-            onChange={(e) => { setSort(e.target.value); setPage(1); }}
+            onChange={(e) => handleSortChange(e.target.value)}
             className="input-field"
             style={{ width: 'auto', minWidth: '170px', flex: '0 1 auto' }}
           >
@@ -190,14 +201,14 @@ export default function ProductsPage() {
         </div>
 
         {/* Error */}
-        {error && (
+        {errorMessage && (
           <div className="alert alert-error" style={{ marginBottom: '24px' }}>
-            ⚠️ {error}
+            ⚠️ {errorMessage}
           </div>
         )}
 
         {/* Loading Skeleton */}
-        {loading && (
+        {isLoading && (
           <div
             style={{
               display: 'grid',
@@ -228,7 +239,7 @@ export default function ProductsPage() {
         )}
 
         {/* Products Grid */}
-        {!loading && products.length > 0 && (
+        {!isLoading && products.length > 0 && (
           <div
             style={{
               display: 'grid',
@@ -243,7 +254,7 @@ export default function ProductsPage() {
         )}
 
         {/* Empty State */}
-        {!loading && products.length === 0 && !error && (
+        {!isLoading && products.length === 0 && !errorMessage && (
           <div className="empty-state">
             <div className="empty-icon">🔍</div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>No products found</h3>
@@ -251,7 +262,7 @@ export default function ProductsPage() {
               Try adjusting your search or category filter
             </p>
             <button
-              onClick={() => { setSearch(''); setCategory('all'); setPage(1); }}
+              onClick={handleClearFilters}
               className="btn-secondary"
               style={{ marginTop: '8px' }}
             >
@@ -261,7 +272,7 @@ export default function ProductsPage() {
         )}
 
         {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {!isLoading && totalPages > 1 && (
           <div
             style={{
               display: 'flex',
@@ -273,7 +284,7 @@ export default function ProductsPage() {
             }}
           >
             <button
-              onClick={() => setPage(page - 1)}
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
               disabled={page === 1}
               className="btn-secondary page-btn"
               style={{ padding: '0 16px', width: 'auto' }}
@@ -290,7 +301,7 @@ export default function ProductsPage() {
               </button>
             ))}
             <button
-              onClick={() => setPage(page + 1)}
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
               disabled={page === totalPages}
               className="btn-secondary page-btn"
               style={{ padding: '0 16px', width: 'auto' }}

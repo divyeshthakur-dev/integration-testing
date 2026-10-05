@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCart } from '@/lib/CartContext';
 import { useAuth } from '@/lib/AuthContext';
 import { ShippingAddress, ApiResponse, Order } from '@/lib/types';
 import api from '@/lib/api';
+import { queryKeys } from '@/lib/queries';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -52,6 +54,7 @@ const INDIAN_STATES = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const { cartItems, cartCount, itemsPrice, shippingPrice, taxPrice, totalPrice, clearCart } = useCart();
 
@@ -68,7 +71,6 @@ export default function CheckoutPage() {
   });
 
   const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
-  const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
@@ -99,14 +101,8 @@ export default function CheckoutPage() {
     setErrors({ ...errors, [e.target.name]: undefined });
   };
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setLoading(true);
-    setSubmitError('');
-
-    try {
+  const checkoutMutation = useMutation({
+    mutationFn: async () => {
       const orderPayload = {
         orderItems: cartItems.map(({ product, quantity }) => ({
           product: product._id,
@@ -131,16 +127,29 @@ export default function CheckoutPage() {
         { orderId: order._id }
       );
 
+      return stripeData.data.url;
+    },
+    onSuccess: (stripeUrl) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       clearCart();
       sessionStorage.removeItem('checkoutAddress');
-      window.location.href = stripeData.data.url;
-    } catch (err: unknown) {
+      window.location.href = stripeUrl;
+    },
+    onError: (err: unknown) => {
       const errorObj = err as { response?: { data?: { message?: string } } };
       setSubmitError(
         errorObj.response?.data?.message || 'Failed to initialize payment. Please try again.'
       );
-      setLoading(false);
-    }
+    },
+  });
+
+  const loading = checkoutMutation.isPending;
+
+  const handlePlaceOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setSubmitError('');
+    checkoutMutation.mutate();
   };
 
   if (!isAuthenticated || cartCount === 0) return null;
